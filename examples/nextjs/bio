@@ -1,0 +1,838 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  BookOpen,
+  Upload,
+  Download,
+  Users,
+  Settings,
+  LogOut,
+  User,
+  Eye,
+  EyeOff,
+  FileText,
+  Clock,
+  Globe,
+  Trash2,
+  Edit3,
+  Save,
+  X,
+  Home,
+  Microscope,
+  Dna,
+  Atom,
+  Beaker,
+  FlaskConical,
+  TestTube,
+  Eye as EyeIcon
+} from 'lucide-react';
+
+// -------------------------
+// Mock Firebase (demo only)
+// -------------------------
+const mockFirebase = {
+  auth: {
+    currentUser: null,
+    signInWithEmailAndPassword: async (email, password) => {
+      await new Promise((r) => setTimeout(r, 700));
+      if (email === 'admin@fayoum.edu.eg' && password === 'BioTech2024@FU') {
+        mockFirebase.auth.currentUser = { email, uid: 'admin-123' };
+        return { user: mockFirebase.auth.currentUser };
+      } else if (email === 'student@fayoum.edu.eg' && password === 'student123') {
+        mockFirebase.auth.currentUser = { email, uid: 'student-123' };
+        return { user: mockFirebase.auth.currentUser };
+      }
+      throw new Error('Invalid credentials');
+    },
+    signOut: async () => {
+      mockFirebase.auth.currentUser = null;
+    }
+  },
+  firestore: {
+    courses: [
+      {
+        id: '1',
+        courseName: 'Introduction to Biotechnology',
+        description: 'Fundamentals of biotechnology, genetic engineering, and molecular biology applications',
+        fileUrl: '#',
+        filename: 'intro_biotech.pdf',
+        uploadedAt: '2024-01-15',
+        courseCode: 'BT101',
+        semester: 'Fall 2024',
+        credit: 3,
+        instructor: 'Dr. Ahmed Hassan'
+      },
+      {
+        id: '2',
+        courseName: 'Molecular Biology & Genetics',
+        description: 'Study of biological molecules, cellular processes, and genetic mechanisms',
+        fileUrl: '#',
+        filename: 'molecular_biology.pdf',
+        uploadedAt: '2024-01-20',
+        courseCode: 'BT201',
+        semester: 'Spring 2024',
+        credit: 4,
+        instructor: 'Dr. Fatma Ali'
+      },
+      {
+        id: '3',
+        courseName: 'Biochemistry & Enzymology',
+        description: 'Chemical processes within living organisms and enzyme mechanisms',
+        fileUrl: '#',
+        filename: 'biochemistry.pdf',
+        uploadedAt: '2024-01-25',
+        courseCode: 'BT301',
+        semester: 'Fall 2024',
+        credit: 4,
+        instructor: 'Dr. Mohamed Farouk'
+      }
+    ]
+  }
+};
+
+// -------------------------
+// Login Component
+// -------------------------
+const Login = ({ onLogin }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const result = await mockFirebase.auth.signInWithEmailAndPassword(email, password);
+      onLogin(result.user);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fillDemoCredentials = (type) => {
+    if (type === 'admin') {
+      setEmail('admin@fayoum.edu.eg');
+      setPassword('BioTech2024@FU');
+    } else {
+      setEmail('student@fayoum.edu.eg');
+      setPassword('student123');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md relative z-10">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
+          <div className="bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 p-8 text-center relative">
+            <div className="relative z-10">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <div className="flex items-center space-x-1">
+                  <Dna className="w-8 h-8 text-green-600" />
+                  <Microscope className="w-8 h-8 text-blue-600" />
+                </div>
+              </div>
+              <h1 className="text-2xl font-bold text-white mb-2">Biotechnology Program</h1>
+              <p className="text-white/90 text-sm font-medium">Fayoum University</p>
+              <p className="text-white/70 text-xs mt-1">Learning Management System</p>
+            </div>
+          </div>
+
+          <div className="p-8">
+            <form onSubmit={handleLogin} className="space-y-6">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center">
+                  <TestTube className="w-4 h-4 mr-2 text-red-500" />
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <div className="relative">
+                  <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pr-12 pl-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50/50"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pr-4 pl-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50/50"
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 text-white py-3 rounded-xl font-medium hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-70 flex items-center justify-center"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <Beaker className="w-4 h-4 mr-2" />
+                    Sign In
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <p className="text-center text-sm text-gray-500 mb-4">Quick Access for Demo:</p>
+
+              <div className="space-y-4">
+                <button
+                  onClick={() => fillDemoCredentials('admin')}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Fill Admin Credentials
+                </button>
+
+                <button
+                  onClick={() => fillDemoCredentials('student')}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Fill Student Credentials
+                </button>
+
+                <button
+                  onClick={() => onLogin({ email: 'guest@fayoum.edu.eg', uid: 'guest' })}
+                  className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors border-2 border-dashed border-gray-300 flex items-center justify-center"
+                >
+                  <EyeIcon className="w-4 h-4 mr-2" />
+                  Browse Without Login
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// -------------------------
+// Navigation Component
+// -------------------------
+const Navigation = ({ currentView, user, onNavigate, onLogout }) => {
+  const isAdmin = user?.email === 'admin@fayoum.edu.eg';
+
+  return (
+    <nav className="bg-white/95 backdrop-blur-sm shadow-lg border-b border-white/20 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex justify-between items-center h-18 py-3">
+          <div className="flex items-center space-x-8">
+            <div className="flex items-center">
+              <div className="flex items-center space-x-2 mr-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl flex items-center justify-center">
+                  <Dna className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                    Biotechnology Program
+                  </span>
+                  <p className="text-xs text-gray-500 font-medium">Fayoum University</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-4">
+              <button
+                onClick={() => onNavigate('student')}
+                className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center ${
+                  currentView === 'student'
+                    ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-lg'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Student Portal
+              </button>
+
+              {isAdmin && (
+                <button
+                  onClick={() => onNavigate('admin')}
+                  className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center ${
+                    currentView === 'admin'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Admin Panel
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Microscope className="w-4 h-4 text-gray-400" />
+              <span className="text-sm text-gray-600">{user?.email}</span>
+            </div>
+            <button
+              onClick={onLogout}
+              className="flex items-center px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+// -------------------------
+// Student Panel
+// -------------------------
+const StudentPanel = ({ courses }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSemester, setSelectedSemester] = useState('');
+
+  const filteredCourses = courses.filter((course) => {
+    const matchesSearch =
+      course.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.courseCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (course.instructor && course.instructor.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesSemester = !selectedSemester || course.semester === selectedSemester;
+
+    return matchesSearch && matchesSemester;
+  });
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="text-center mb-8">
+        <div className="flex justify-center items-center space-x-4 mb-4">
+          <Microscope className="w-8 h-8 text-blue-500 animate-pulse" />
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+            Student Learning Portal
+          </h1>
+          <TestTube className="w-8 h-8 text-green-500 animate-pulse" />
+        </div>
+        <p className="text-gray-600">Access biotechnology courses and research materials</p>
+      </div>
+
+      <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-500 via-green-500 to-teal-500 p-6 relative">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="relative z-10 flex items-center">
+            <div className="flex items-center space-x-2">
+              <Dna className="w-8 h-8 text-white animate-pulse" />
+              <FlaskConical className="w-8 h-8 text-white animate-pulse" />
+            </div>
+            <div className="ml-4">
+              <h2 className="text-2xl font-bold text-white">Course Laboratory</h2>
+              <p className="text-blue-100">Explore biotechnology knowledge base</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-8 bg-gradient-to-br from-blue-50/30 to-green-50/30">
+          <div className="flex flex-col md:flex-row gap-4 mb-8">
+            <div className="flex-1 relative">
+              <Beaker className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70"
+                placeholder="Search courses, instructors, or topics..."
+              />
+            </div>
+
+            <select
+              value={selectedSemester}
+              onChange={(e) => setSelectedSemester(e.target.value)}
+              className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70"
+            >
+              <option value="">All Semesters</option>
+              <option value="Fall 2024">Fall 2024</option>
+              <option value="Spring 2024">Spring 2024</option>
+              <option value="Summer 2024">Summer 2024</option>
+              <option value="Fall 2025">Fall 2025</option>
+              <option value="Spring 2025">Spring 2025</option>
+            </select>
+          </div>
+
+          {filteredCourses.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="flex justify-center space-x-4 mb-4">
+                <Atom className="w-16 h-16 text-gray-300" />
+                <Dna className="w-16 h-16 text-gray-300" />
+              </div>
+              <p className="text-gray-500 text-lg">
+                {searchTerm || selectedSemester ? 'No matching courses found' : 'No courses available'}
+              </p>
+              <p className="text-gray-400 text-sm mt-2">Check back later for new biotechnology courses</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredCourses.map((course) => (
+                <div key={course.id} className="group bg-gradient-to-br from-white/90 to-blue-50/50 backdrop-blur-sm border border-blue-100 rounded-2xl p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center">
+                      <div className="w-14 h-14 bg-gradient-to-br from-blue-500 via-green-500 to-teal-500 rounded-2xl flex items-center justify-center text-white font-bold mr-4 group-hover:scale-110 transition-transform">
+                        <div className="flex items-center space-x-1">
+                          {course.courseCode.includes('BT1') && <TestTube className="w-6 h-6" />}
+                          {course.courseCode.includes('BT2') && <Dna className="w-6 h-6" />}
+                          {course.courseCode.includes('BT3') && <Atom className="w-6 h-6" />}
+                          {!course.courseCode.match(/BT[123]/) && <Microscope className="w-6 h-6" />}
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{course.courseName}</h3>
+                        <p className="text-sm text-blue-600 font-medium">{course.courseCode}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {course.description && (
+                    <p className="text-gray-600 mb-6 leading-relaxed text-sm">{course.description}</p>
+                  )}
+
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <User className="w-4 h-4 mr-3 text-purple-500" />
+                      <span className="font-medium">Instructor:</span>
+                      <span className="ml-2">{course.instructor || 'TBD'}</span>
+                    </div>
+
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Clock className="w-4 h-4 mr-3 text-orange-500" />
+                      <span className="font-medium">Semester:</span>
+                      <span className="ml-2">{course.semester || 'TBD'}</span>
+                    </div>
+
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Atom className="w-4 h-4 mr-3 text-red-500" />
+                      <span className="font-medium">Credits:</span>
+                      <span className="ml-2">{course.credit} hours</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <div className="flex items-center text-sm text-gray-500">
+                      <FileText className="w-4 h-4 mr-2" />
+                      <span>{course.filename}</span>
+                    </div>
+
+                    <a
+                      href={course.fileUrl}
+                      download
+                      className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-xl hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 group-hover:scale-105"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// -------------------------
+// Admin Panel
+// -------------------------
+const AdminPanel = ({ courses, onAddOrUpdateCourse, onDeleteCourse }) => {
+  const [courseName, setCourseName] = useState('');
+  const [courseCode, setCourseCode] = useState('');
+  const [description, setDescription] = useState('');
+  const [instructor, setInstructor] = useState('');
+  const [semester, setSemester] = useState('');
+  const [credit, setCredit] = useState('');
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (editingCourse) {
+      setCourseName(editingCourse.courseName || '');
+      setCourseCode(editingCourse.courseCode || '');
+      setDescription(editingCourse.description || '');
+      setInstructor(editingCourse.instructor || '');
+      setSemester(editingCourse.semester || '');
+      setCredit(editingCourse.credit ? editingCourse.credit.toString() : '');
+    }
+  }, [editingCourse]);
+
+  const resetForm = () => {
+    setCourseName('');
+    setCourseCode('');
+    setDescription('');
+    setInstructor('');
+    setSemester('');
+    setCredit('');
+    setFile(null);
+    setEditingCourse(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setUploading(true);
+    try {
+      const newCourse = {
+        id: editingCourse ? editingCourse.id : Date.now().toString(),
+        courseName,
+        courseCode,
+        description,
+        instructor,
+        semester,
+        credit: credit ? parseInt(credit) : 0,
+        fileUrl: file ? '#uploaded-file' : (editingCourse?.fileUrl || '#'),
+        filename: file ? file.name : (editingCourse?.filename || 'no-file.pdf'),
+        uploadedAt: editingCourse ? editingCourse.uploadedAt : new Date().toISOString().split('T')[0]
+      };
+
+      // call parent's handler
+      onAddOrUpdateCourse(newCourse);
+      resetForm();
+
+      // simulate upload
+      await new Promise((r) => setTimeout(r, 800));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const startEdit = (course) => setEditingCourse(course);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="space-y-8">
+        <div className="text-center mb-8">
+          <div className="flex justify-center items-center space-x-4 mb-4">
+            <Dna className="w-8 h-8 text-purple-500 animate-pulse" />
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Course Administration</h1>
+            <Atom className="w-8 h-8 text-blue-500 animate-pulse" />
+          </div>
+          <p className="text-gray-600">Manage biotechnology courses and educational content</p>
+        </div>
+
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 p-6 relative">
+            <div className="relative z-10 flex items-center">
+              <div className="flex items-center space-x-2">
+                <FlaskConical className="w-8 h-8 text-white animate-pulse" />
+                <Beaker className="w-8 h-8 text-white animate-pulse" />
+              </div>
+              <div className="ml-4">
+                <h2 className="text-2xl font-bold text-white">Laboratory Management System</h2>
+                <p className="text-purple-100">Add and manage biotechnology courses</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-8 bg-gradient-to-br from-purple-50/30 to-pink-50/30">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <BookOpen className="w-4 h-4 mr-2 text-purple-500" />
+                    Course Name
+                  </label>
+                  <input
+                    type="text"
+                    value={courseName}
+                    onChange={(e) => setCourseName(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white/70"
+                    placeholder="e.g., Molecular Biology & Genetics"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <TestTube className="w-4 h-4 mr-2 text-blue-500" />
+                    Course Code
+                  </label>
+                  <input
+                    type="text"
+                    value={courseCode}
+                    onChange={(e) => setCourseCode(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white/70"
+                    placeholder="e.g., BT201"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <FileText className="w-4 h-4 mr-2 text-green-500" />
+                  Course Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white/70"
+                  placeholder="Brief description of the course content and objectives"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <User className="w-4 h-4 mr-2 text-indigo-500" />
+                    Instructor
+                  </label>
+                  <input
+                    type="text"
+                    value={instructor}
+                    onChange={(e) => setInstructor(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white/70"
+                    placeholder="Dr. Name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <Clock className="w-4 h-4 mr-2 text-orange-500" />
+                    Semester
+                  </label>
+                  <select
+                    value={semester}
+                    onChange={(e) => setSemester(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white/70"
+                  >
+                    <option value="">Select Semester</option>
+                    <option value="Fall 2024">Fall 2024</option>
+                    <option value="Spring 2024">Spring 2024</option>
+                    <option value="Summer 2024">Summer 2024</option>
+                    <option value="Fall 2025">Fall 2025</option>
+                    <option value="Spring 2025">Spring 2025</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <Atom className="w-4 h-4 mr-2 text-red-500" />
+                    Credit Hours
+                  </label>
+                  <input
+                    type="number"
+                    value={credit}
+                    onChange={(e) => setCredit(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white/70"
+                    placeholder="3"
+                    min="1"
+                    max="6"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <Upload className="w-4 h-4 mr-2 text-green-500" />
+                  Course Materials
+                </label>
+                <div className="flex items-center space-x-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white/70"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx"
+                  />
+                  <Microscope className="w-6 h-6 text-gray-400" />
+                </div>
+                {file && (
+                  <p className="mt-2 text-sm text-green-600 flex items-center">
+                    <FileText className="w-4 h-4 mr-2" />
+                    File selected: {file.name}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex space-x-4">
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 disabled:opacity-70 flex items-center"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      {editingCourse ? 'Update Course' : 'Add Course'}
+                    </>
+                  )}
+                </button>
+
+                <button type="button" onClick={resetForm} className="px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors flex items-center">
+                  <X className="w-4 h-4 mr-2" />
+                  {editingCourse ? 'Cancel Update' : 'Clear Form'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden mt-6">
+          <div className="bg-gradient-to-r from-blue-500 to-green-500 p-6">
+            <h3 className="text-xl font-bold text-white flex items-center">
+              <Dna className="w-6 h-6 mr-3 animate-pulse" />
+              Course Database ({courses.length} courses)
+            </h3>
+          </div>
+
+          <div className="p-6 bg-gradient-to-br from-blue-50/30 to-green-50/30">
+            {courses.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="flex justify-center space-x-4 mb-4">
+                  <TestTube className="w-16 h-16 text-gray-300" />
+                  <Beaker className="w-16 h-16 text-gray-300" />
+                </div>
+                <p className="text-gray-500 text-lg">No courses added yet</p>
+                <p className="text-gray-400 text-sm">Start by adding your first biotechnology course</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {courses.map((c) => (
+                  <div key={c.id} className="bg-gradient-to-r from-white/80 to-gray-50/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-4 flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center mb-2">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-green-500 rounded-xl flex items-center justify-center mr-4">
+                          <Dna className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-bold text-gray-800">{c.courseName}</h4>
+                          <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-green-100 text-blue-800 text-sm rounded-full font-medium">{c.courseCode}</span>
+                        </div>
+                      </div>
+
+                      {c.description && <p className="text-gray-600 mb-2 leading-relaxed">{c.description}</p>}
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
+                        <div className="flex items-center"><User className="w-4 h-4 mr-2 text-purple-500" />{c.instructor || 'TBD'}</div>
+                        <div className="flex items-center"><Clock className="w-4 h-4 mr-2 text-orange-500" />{c.semester || 'TBD'}</div>
+                        <div className="flex items-center"><Atom className="w-4 h-4 mr-2 text-red-500" />{c.credit} Credit Hours</div>
+                        <div className="flex items-center"><FileText className="w-4 h-4 mr-2 text-green-500" />{c.filename}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2 ml-4">
+                      <button onClick={() => startEdit(c)} className="p-3 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors group" title="Edit Course">
+                        <Edit3 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                      </button>
+                      <button onClick={() => onDeleteCourse(c.id)} className="p-3 text-red-600 hover:bg-red-100 rounded-xl transition-colors group" title="Delete Course">
+                        <Trash2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// -------------------------
+// Main App
+// -------------------------
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [courses, setCourses] = useState(mockFirebase.firestore.courses);
+  const [currentView, setCurrentView] = useState('login');
+
+  useEffect(() => {
+    // nothing extra needed here for this simple demo
+  }, []);
+
+  const handleLogin = (user) => {
+    setUser(user);
+    const isAdmin = user.email === 'admin@fayoum.edu.eg';
+    setCurrentView(isAdmin ? 'admin' : 'student');
+  };
+
+  const handleLogout = async () => {
+    await mockFirebase.auth.signOut();
+    setUser(null);
+    setCurrentView('login');
+  };
+
+  const handleAddOrUpdateCourse = (newCourse) => {
+    setCourses((prev) => {
+      const exists = prev.find((c) => c.id === newCourse.id);
+      if (exists) {
+        return prev.map((c) => (c.id === newCourse.id ? newCourse : c));
+      }
+      return [newCourse, ...prev];
+    });
+  };
+
+  const handleDeleteCourse = (id) => {
+    if (window.confirm('Are you sure you want to delete this course?')) {
+      setCourses((prev) => prev.filter((c) => c.id !== id));
+    }
+  };
+
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+      <Navigation currentView={currentView} user={user} onNavigate={setCurrentView} onLogout={handleLogout} />
+
+      <div>
+        {currentView === 'admin' && user?.email === 'admin@fayoum.edu.eg' && (
+          <AdminPanel courses={courses} onAddOrUpdateCourse={handleAddOrUpdateCourse} onDeleteCourse={handleDeleteCourse} />
+        )}
+        {currentView === 'student' && <StudentPanel courses={courses} />}
+      </div>
+    </div>
+  );
+};
+
+export default App;
